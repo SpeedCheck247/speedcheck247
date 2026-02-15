@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeedCheck247</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ===== BODY & GRID ===== */
+body {
+    margin: 0;
+    font-family: 'Orbitron', sans-serif;
+    background: #050a14;
+    color: #00ffee;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    width: 200%;
+    height: 200%;
+    background-image: linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: moveGrid 15s linear infinite;
+    z-index: -1;
+}
+
+@keyframes moveGrid {
+    from { transform: translate(0,0); }
+    to { transform: translate(-50px,-50px); }
+}
+
+/* ===== DASHBOARD ===== */
+.dashboard {
+    backdrop-filter: blur(20px);
+    background: rgba(0, 20, 40, 0.4);
+    border: 1px solid rgba(0,255,255,0.2);
+    border-radius: 20px;
+    padding: 40px;
+    width: 460px;
+    max-width: 95vw;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0,255,255,0.2);
+    position: relative;
+    overflow: hidden;
+    margin-top: 20px;
+    box-sizing: border-box;
+}
+
+.dashboard::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    background: rgba(0,255,255,0.3);
+    top: 0;
+    left: 0;
+    animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+    0% { top: 0; }
+    100% { top: 100%; }
+}
+
+/* ===== TEXT & BUTTON ===== */
+h1 {
+    margin-bottom: 5px;
+    text-shadow: 0 0 15px #00ffee;
+}
+
+button {
+    padding: 12px 30px;
+    margin: 15px 0;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    background: linear-gradient(90deg,#00ffee,#0066ff);
+    color: #000;
+    font-weight: bold;
+    transition: 0.3s;
+}
+button:hover { transform: scale(1.05); }
+
+/* ===== SPEEDOMETER ===== */
+#speedometer {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 10px auto;
+}
+
+svg { transform: rotate(-90deg); }
+
+#progress-ring {
+    stroke-width: 18;
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
+    filter: drop-shadow(0 0 20px #00ffee);
+}
+
+.ring-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5em;
+    text-shadow: 0 0 20px #00ffee;
+}
+
+.pulsing {
+    animation: pulseGlow 1s infinite alternate;
+}
+
+@keyframes pulseGlow {
+    from { filter: drop-shadow(0 0 10px #00ffee); }
+    to { filter: drop-shadow(0 0 40px #00ffee); }
+}
+
+/* ===== METER BARS ===== */
+.meter-bar {
+    width: 100%;
+    height: 18px;
+    background: rgba(0,255,255,0.1);
+    border-radius: 10px;
+    margin: 8px 0;
+    overflow: hidden;
+}
+
+.meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg,#00ff99,#00ffee,#0066ff);
+    transition: width 1s ease-out;
+}
+
+/* ===== INFO TEXT ===== */
+.info {
+    font-size: 0.8em;
+    margin-top: 10px;
+    opacity: 0.8;
+}
+
+#quality {
+    margin-top: 8px;
+    font-weight: bold;
+}
+
+canvas {
+    width: 100%;
+    height: 60px;
+    margin-top: 10px;
+}
+
+/* ===== PERFORMANCE TABLE ===== */
+.performance-section {
+    margin-top: 40px;
+    border-top: 1px solid rgba(0,255,255,0.2);
+    padding-top: 25px;
+    text-align: left;
+}
+
+.performance-section h2 {
+    text-align: center;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px #00ffee;
+}
+
+.performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+}
+
+.performance-table th,
+.performance-table td {
+    padding: 10px;
+    border-bottom: 1px solid rgba(0,255,255,0.1);
+}
+
+.performance-table th {
+    color: #00ffee;
+    font-weight: 700;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.75em;
+}
+
+.status-excellent { background: rgba(0,255,150,0.2); color: #00ff99; }
+.status-good { background: rgba(0,200,255,0.2); color: #00ccff; }
+.status-moderate { background: rgba(255,170,0,0.2); color: #ffaa00; }
+.status-poor { background: rgba(255,0,50,0.2); color: #ff0033; }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+    <h1>SpeedCheck247</h1>
+    <button onclick="runSpeedTest()">INITIATE NETWORK SCAN</button>
+
+    <div id="speedometer">
+        <svg width="300" height="300">
+            <circle cx="150" cy="150" r="130" stroke="rgba(0,255,255,0.1)" stroke-width="18"/>
+            <circle id="progress-ring" cx="150" cy="150" r="130"/>
+        </svg>
+        <div id="ring-speed" class="ring-number">0</div>
+    </div>
+
+    <canvas id="liveGraph"></canvas>
+
+    <div class="meter-bar"><div id="download-fill" class="meter-fill"></div></div>
+    <div>Download: <span id="download-speed">0 Mbps</span></div>
+
+    <div class="meter-bar"><div id="upload-fill" class="meter-fill"></div></div>
+    <div>Upload: <span id="upload-speed">0 Mbps</span></div>
+
+    <div>Ping: <span id="ping-speed">0 ms</span></div>
+    <div id="quality">Status: IDLE</div>
+
+    <div class="info">
+        IP: <span id="ip">Detecting...</span><br>
+        ISP: <span id="isp">Detecting...</span><br>
+        Country: <span id="country">Detecting...</span>
+    </div>
+
+    <div class="performance-section">
+        <h2>REAL-WORLD PERFORMANCE ANALYSIS</h2>
+        <table class="performance-table">
+            <thead>
+                <tr>
+                    <th>Activity</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Online Gaming</td>
+                    <td id="gaming-status">—</td>
+                    <td id="gaming-note">Awaiting test</td>
+                </tr>
+                <tr>
+                    <td>Video Calls</td>
+                    <td id="video-status">—</td>
+                    <td id="video-note">Awaiting test</td>
+                </tr>
+                <tr>
+                    <td>4K Streaming</td>
+                    <td id="stream-status">—</td>
+                    <td id="stream-note">Awaiting test</td>
+                </tr>
+                <tr>
+                    <td>Large File Downloads</td>
+                    <td id="download-status">—</td>
+                    <td id="download-note">Awaiting test</td>
+                </tr>
+                <tr>
+                    <td>General Browsing</td>
+                    <td id="browse-status">—</td>
+                    <td id="browse-note">Awaiting test</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+/* ===== SPEEDOMETER & UTILS ===== */
+const realMax = 2000;
+const radius = 130;
+const circumference = 2 * Math.PI * radius;
+const ring = document.getElementById("progress-ring");
+ring.style.strokeDasharray = circumference;
+ring.style.strokeDashoffset = circumference;
+
+function updateRing(speed) {
+    const clamped = Math.min(speed, realMax);
+    const percent = clamped / realMax;
+    ring.style.strokeDashoffset = circumference - percent * circumference;
+    document.getElementById("ring-speed").textContent = speed.toFixed(0);
+    if (speed < 50) ring.style.stroke = "#ff0033";
+    else if (speed < 150) ring.style.stroke = "#ffaa00";
+    else ring.style.stroke = "#00ffee";
+}
+
+function updateQuality(ping) {
+    const q = document.getElementById("quality");
+    if (ping < 30) q.textContent = "Status: SECURE & STABLE";
+    else if (ping < 80) q.textContent = "Status: STABLE";
+    else q.textContent = "Status: DEGRADED";
+}
+
+function animateValue(el, start, end, duration) {
+    let startTime = null;
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime)/duration, 1);
+        el.textContent = (start + (end-start)*progress).toFixed(2);
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+/* ===== LIVE GRAPH ===== */
+const canvas = document.getElementById("liveGraph");
+const ctx = canvas.getContext("2d");
+canvas.width = 400;
+canvas.height = 60;
+let points = [];
+
+function updateGraph(value) {
+    points.push(value);
+    if (points.length > 40) points.shift();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.beginPath();
+    ctx.strokeStyle = "#00ffee";
+    ctx.lineWidth = 2;
+    points.forEach((v,i)=>{
+        const x = i*(canvas.width/40);
+        const y = canvas.height - (v/realMax)*canvas.height;
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+}
+
+/* ===== IP INFO ===== */
+async function getIPInfo() {
+    try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        // Show IPv4 if available, else fallback to IPv6
+let ipv4 = data.ip;  // default from ipapi.co (might be IPv6)
+if (ipv4.includes(":") && data.ipv4) { // check if it's IPv6 and IPv4 exists
+    ipv4 = data.ipv4; // use IPv4
+}
+
+document.getElementById("ip").textContent = ipv4;      // user-friendly main IP
+document.getElementById("ip").title = data.ip;         // full IPv6 on hover
+        document.getElementById("isp").textContent = data.org;
+        document.getElementById("country").textContent = data.country_name;
+    } catch {}
+}
+getIPInfo();
+
+/* ===== PERFORMANCE TABLE ===== */
+function badge(type,label){
+    return `<span class="status-badge status-${type}">${label}</span>`;
+}
+
+function updatePerformanceTable(download, upload, ping){
+    if(!download || !upload || !ping) return;
+    let gS,gN,vS,vN,sS,sN,fS,fN,bS,bN;
+
+    // GAMING
+    if(ping<30 && download>25){ gS=badge("excellent","EXCELLENT"); gN="Low latency detected"; }
+    else if(ping<60){ gS=badge("good","GOOD"); gN="Playable with minor delay"; }
+    else if(ping<100){ gS=badge("moderate","MODERATE"); gN="Latency may affect FPS games"; }
+    else{ gS=badge("poor","POOR"); gN="High lag risk"; }
+
+    // VIDEO
+    if(upload>15 && ping<50){ vS=badge("excellent","EXCELLENT"); vN="HD calls stable"; }
+    else if(upload>5){ vS=badge("good","GOOD"); vN="Standard HD supported"; }
+    else{ vS=badge("moderate","LIMITED"); vN="Possible call quality issues"; }
+
+    // STREAMING
+    if(download>50){ sS=badge("excellent","4K READY"); sN="Multiple 4K streams supported"; }
+    else if(download>25){ sS=badge("good","GOOD"); sN="4K supported"; }
+    else if(download>10){ sS=badge("moderate","HD ONLY"); sN="1080p recommended"; }
+    else{ sS=badge("poor","LOW"); sN="Buffering likely"; }
+
+    // FILES
+    if(download>100){ fS=badge("excellent","VERY FAST"); fN="Large files download quickly"; }
+    else if(download>25){ fS=badge("good","FAST"); fN="Good performance"; }
+    else{ fS=badge("moderate","AVERAGE"); fN="May take time for large files"; }
+
+    // BROWSING
+    if(ping<40){ bS=badge("excellent","SMOOTH"); bN="Instant page loads"; }
+    else if(ping<80){ bS=badge("good","GOOD"); bN="Minor delay possible"; }
+    else{ bS=badge("moderate","DELAYED"); bN="Slower response times"; }
+
+    document.getElementById("gaming-status").innerHTML=gS;
+    document.getElementById("gaming-note").textContent=gN;
+    document.getElementById("video-status").innerHTML=vS;
+    document.getElementById("video-note").textContent=vN;
+    document.getElementById("stream-status").innerHTML=sS;
+    document.getElementById("stream-note").textContent=sN;
+    document.getElementById("download-status").innerHTML=fS;
+    document.getElementById("download-note").textContent=fN;
+    document.getElementById("browse-status").innerHTML=bS;
+    document.getElementById("browse-note").textContent=bN;
+}
+
+/* ===== SPEED TEST FUNCTION ===== */
+async function runSpeedTest() {
+    const downloadFill = document.getElementById('download-fill');
+    const uploadFill = document.getElementById('upload-fill');
+    const downloadSpan = document.getElementById('download-speed');
+    const uploadSpan = document.getElementById('upload-speed');
+    const pingSpan = document.getElementById('ping-speed');
+
+    ring.classList.add("pulsing");
+
+    const pingStart = performance.now();
+    await fetch('/ping');
+    const ping = performance.now() - pingStart;
+    animateValue(pingSpan, 0, ping, 800);
+    updateQuality(ping);
+
+    const downloadStart = performance.now();
+    const downloadResponse = await fetch('/download');
+    await downloadResponse.arrayBuffer();
+    const downloadTime = (performance.now() - downloadStart)/1000;
+    const downloadSize = 10*1024*1024;
+    const downloadSpeed = ((downloadSize*8)/downloadTime/1024/1024);
+
+    animateValue(downloadSpan, 0, downloadSpeed, 1000);
+    downloadFill.style.width = Math.min(downloadSpeed/realMax*100,100)+'%';
+    updateRing(downloadSpeed);
+    updateGraph(downloadSpeed);
+
+    const uploadData = new Uint8Array(10*1024*1024);
+    const uploadStart = performance.now();
+    await fetch('/upload',{method:'POST',body:uploadData});
+    const uploadTime = (performance.now()-uploadStart)/1000;
+    const uploadSpeed = ((uploadData.length*8)/uploadTime/1024/1024);
+
+    animateValue(uploadSpan, 0, uploadSpeed, 1000);
+    uploadFill.style.width = Math.min(uploadSpeed/realMax*100,100)+'%';
+
+    updatePerformanceTable(downloadSpeed, uploadSpeed, ping);
+
+    ring.classList.remove("pulsing");
+}
+</script>
+
+</body>
+</html>
